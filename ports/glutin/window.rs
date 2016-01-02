@@ -344,7 +344,7 @@ impl Window {
         // When writing to a file then exiting, use event
         // polling so that we don't block on a GUI event
         // such as mouse click.
-        if opts::get().output_file.is_some() || opts::get().exit_after_load {
+        if opts::get().output_file.is_some() || opts::get().exit_after_load || opts::get().headless {
             while let Some(event) = self.window.poll_events().next() {
                 close_event = self.handle_window_event(event) || close_event;
             }
@@ -495,12 +495,12 @@ impl Window {
 // WindowProxy is not implemented for android yet
 
 #[cfg(all(feature = "window", target_os = "android"))]
-fn create_window_proxy(_: &Rc<Window>) -> Option<glutin::WindowProxy> {
+fn create_window_proxy(_: &Window) -> Option<glutin::WindowProxy> {
     None
 }
 
 #[cfg(all(feature = "window", not(target_os = "android")))]
-fn create_window_proxy(window: &Rc<Window>) -> Option<glutin::WindowProxy> {
+fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
     Some(window.window.create_window_proxy())
 }
 
@@ -537,14 +537,11 @@ impl WindowMethods for Window {
         self.window.swap_buffers().unwrap();
     }
 
-    fn create_compositor_channel(window: &Option<Rc<Window>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
 
-        let window_proxy = match window {
-            &Some(ref window) => create_window_proxy(window),
-            &None => None,
-        };
+        let window_proxy = create_window_proxy(self);
 
         (box GlutinCompositorProxy {
              sender: sender,
@@ -785,7 +782,7 @@ impl WindowMethods for Window {
         (Size2D::new(width, height), Point2D::zero())
     }
 
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
+    fn create_compositor_channel(&self)
                                  -> (Box<CompositorProxy + Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
 
