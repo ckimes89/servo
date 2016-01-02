@@ -9,7 +9,6 @@ use compositor;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{LayerId, LayerProperties, PaintListener};
-use headless;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
@@ -113,7 +112,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
         // just return None in this case, since the paint task
         // will exit shortly and never actually be requested
         // to paint buffers by the compositor.
-        port.recv().unwrap_or(None)
+        port.recv().ok()
     }
 
     fn assign_painted_buffers(&mut self,
@@ -164,9 +163,7 @@ pub enum Msg {
     /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
-    ///
-    /// The headless compositor returns `None`.
-    GetNativeDisplay(Sender<Option<NativeDisplay>>),
+    GetNativeDisplay(Sender<NativeDisplay>),
 
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
@@ -266,20 +263,12 @@ impl Debug for Msg {
 pub struct CompositorTask;
 
 impl CompositorTask {
-    pub fn create<Window>(window: Option<Rc<Window>>,
+    pub fn create<Window>(window: Rc<Window>,
                           state: InitialCompositorState)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
-        match window {
-            Some(window) => {
-                box compositor::IOCompositor::create(window, state)
-                    as Box<CompositorEventListener>
-            }
-            None => {
-                box headless::NullCompositor::create(state)
-                    as Box<CompositorEventListener>
-            }
-        }
+        box compositor::IOCompositor::create(window, state)
+            as Box<CompositorEventListener>
     }
 }
 

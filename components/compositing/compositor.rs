@@ -446,7 +446,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetNativeDisplay(chan),
              ShutdownState::NotShuttingDown) => {
-                chan.send(Some(self.native_display.clone())).unwrap();
+                chan.send(self.native_display.clone()).unwrap();
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
@@ -1550,7 +1550,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, requests) in pipeline_requests {
             let msg = ChromeToPaintMsg::Paint(requests, self.frame_tree_id);
             if let Some(pipeline) = self.pipeline(pipeline_id) {
-                pipeline.chrome_to_paint_chan.send(msg).unwrap();
+                let _ = pipeline.chrome_to_paint_chan.send(msg);
             }
         }
 

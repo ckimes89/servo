@@ -65,7 +65,6 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_task;
 pub mod constellation;
-mod headless;
 pub mod pipeline;
 pub mod sandboxing;
 mod scrolling;
